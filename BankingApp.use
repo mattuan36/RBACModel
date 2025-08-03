@@ -1,0 +1,114 @@
+-- This is a USE model of the Banking Application described in Using UML To Visualize Role-Based Access Control Constraints
+-- By: Matthew Tuan and Robbie Dutton
+
+model BankingApp
+
+-- classes
+
+class Session
+operations
+  AddActiveRole()
+  DropActiveRole()
+  CheckAccess()
+  InvokeOperation()
+end
+
+class User
+attributes
+  UserId : String
+operations
+  CreateSession()
+  DeleteSession()
+  AssignRole()
+  DeassignRole()
+  AssignedRoles()
+  AuthorizedRoles()
+end
+
+class Role 
+attributes
+  name : String
+operations
+  GrantPermission()
+  RevokePermission()
+  CheckAccess()
+  AddAscendant()
+  DeleteAscendant()
+  AddDescendant()
+  DeleteDescendant()
+  AddSSDRole()
+  DeleteSSDRole()
+  AddDSDRole()
+  DeleteDSDRole()
+  AssignedUsers()
+  AuthorizedUsers()
+  Ascendants()
+  Descendants()
+  SSDRoles()
+  DSDRoles()
+end
+
+class Permission
+operations
+  CheckAccess()
+end
+
+class Object
+end
+
+class Operation
+end
+
+-- associations
+
+association UserSessions between
+  User[1] role user
+  Session[0..*] role a
+end
+
+association UserAssignment between
+  User[0..*] role b
+  Role[0..*] role c
+end
+
+association SessionRoles between
+  Session[0..*] role d
+  Role[0..*] role e
+end
+
+association PermAssignment between
+  Role[0..*] role k
+  Permission[0..*] role l
+end
+
+association PermObjects between
+  Permission[0..*] role m
+  Object[0..*] role f
+end
+
+association PermOperations between
+  Permission[0..*] role n
+  Operation[0..*] role p
+end
+
+association ExecuteOn between
+  Object[0..*] role o
+  Operation[0..*] role q
+end
+
+association SSD between
+  Role[0..*] role g
+  Role[0..*] role h
+end
+
+association DSD between
+  Role[0..*] role r
+  Role[0..*] role s
+end
+
+association RoleHierarchy between
+  Role[0..*] role senior
+  Role[0..*] role junior
+end
+
+
