@@ -146,19 +146,44 @@ context User::DeassignRole(r: Role)
 
 -- class invariants
 
+-- Basic SSD and DSD constraints
+
 -- Static Separation of Duty (SSD): Conflicting roles cannot be assigned to the same user
 context Role inv SSDConstraint:
   self.b->excludesAll(self.g.b)
 
 -- Dynamic Separation of Duty (DSD): Conflicting roles cannot be activated in the same session
--- context Role inv DSDConstraint:
---  self.b.a->excludesAll(self.b.a)
+context Role inv DSDConstraint:
+  self.d->excludesAll(self.s.d)
+
+
 
 
 
 
 
 ----- BELOW HERE IS SOMETHING BUT NOT SURE YET
+
+-- Do these four even need to be implemented? We don't have a concept of prerequisites
+
+-- SSD-Permission constraint: Conflicting permissions cannot be assigned to the same role.
+-- context Role inv SSDPermissionConstraint:
+--  self.l -> excludesAll(self.g.l)
+
+
+-- Prerequisite-Role constraint: A user can be assigned to a role only if the user is already assigned to the role’s prerequisites.
+-- context User inv PrerequisiteRole:
+--   self.c -> includesAll(self.c.h)
+
+-- SSD-User constraint: Conflicting users cannot be assigned to the same role.
+-- context User inv SSDUserConstraint:
+--   u1.Role -> excludesAll(u2.Role)
+
+-- Prerequisite-Permission constraint: A permission can be assigned to a role only if the role already possesses the permission's prerequisites.
+-- context Role inv PrerequisitePerm:
+--  self.l -> includesAll(self.h.l)
+
+
 
 
 -- Active roles must be a subset of the user's assigned roles
@@ -170,11 +195,13 @@ context Session inv ActiveRolesSubsetOfUserRoles:
 context Role inv PermissionInheritance:
   self.junior->forAll(j | self.l->includesAll(j.l))
 
+
+-- This one is not working :(
 -- Simulated CheckAccess: A session should have access to at least one operation on one object
 -- if any of its active roles (or their juniors) has such permission
-context Session inv HasAtLeastOneValidAccess:
-  self.e->closure(junior)->exists(r |
-    r.l->exists(p |
-      p.f->exists(o | p.p->exists(op | o.q->includes(op)))
-    )
-  )
+--context Session inv HasAtLeastOneValidAccess:
+--  self.e->closure(junior)->exists(r |
+--    r.l->exists(p |
+--      p.f->exists(o | p.p->exists(op | o.q->includes(op)))
+--    )
+--  )
