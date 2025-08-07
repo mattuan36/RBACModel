@@ -32,6 +32,9 @@ operations
   GrantPermission(p: Permission)
   RevokePermission(p: Permission)
   CheckAccess(obj : Object, op : Operation)  : Boolean
+  begin
+    --- code here
+  end
   AddAscendant(r: Role)
   DeleteAscendant(r: Role)
   AddDescendant(r: Role)
@@ -50,7 +53,7 @@ end
 
 class Permission
 operations
-  CheckAccess(obj : Object, op : Operation)  : Boolean
+  CheckAccess(obj : Object, op : Operation) : Boolean
 end
 
 class Object
@@ -141,4 +144,37 @@ context User::DeassignRole(r: Role)
 
 
 
+-- class invariants
 
+-- Static Separation of Duty (SSD): Conflicting roles cannot be assigned to the same user
+context Role inv SSDConstraint:
+  self.b->excludesAll(self.g.b)
+
+-- Dynamic Separation of Duty (DSD): Conflicting roles cannot be activated in the same session
+-- context Role inv DSDConstraint:
+--  self.b.a->excludesAll(self.b.a)
+
+
+
+
+
+----- BELOW HERE IS SOMETHING BUT NOT SURE YET
+
+
+-- Active roles must be a subset of the user's assigned roles
+context Session inv ActiveRolesSubsetOfUserRoles:
+  self.e->forAll(r | self.user.c->includes(r))
+
+
+-- Role hierarchy: a role inherits all permissions from its junior roles
+context Role inv PermissionInheritance:
+  self.junior->forAll(j | self.l->includesAll(j.l))
+
+-- Simulated CheckAccess: A session should have access to at least one operation on one object
+-- if any of its active roles (or their juniors) has such permission
+context Session inv HasAtLeastOneValidAccess:
+  self.e->closure(junior)->exists(r |
+    r.l->exists(p |
+      p.f->exists(o | p.p->exists(op | o.q->includes(op)))
+    )
+  )
