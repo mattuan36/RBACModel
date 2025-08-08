@@ -179,33 +179,6 @@ context Role inv DSDConstraint:
 
 
 
-
-
-
------ BELOW HERE IS SOMETHING BUT NOT SURE YET
-
--- Do these four even need to be implemented? We don't have a concept of prerequisites
-
--- SSD-Permission constraint: Conflicting permissions cannot be assigned to the same role.
--- context Role inv SSDPermissionConstraint:
---  self.l -> excludesAll(self.g.l)
-
-
--- Prerequisite-Role constraint: A user can be assigned to a role only if the user is already assigned to the role’s prerequisites.
--- context User inv PrerequisiteRole:
---   self.c -> includesAll(self.c.h)
-
--- SSD-User constraint: Conflicting users cannot be assigned to the same role.
--- context User inv SSDUserConstraint:
---   u1.Role -> excludesAll(u2.Role)
-
--- Prerequisite-Permission constraint: A permission can be assigned to a role only if the role already possesses the permission's prerequisites.
--- context Role inv PrerequisitePerm:
---  self.l -> includesAll(self.h.l)
-
-
-
-
 -- Active roles must be a subset of the user's assigned roles
 context Session inv ActiveRolesSubsetOfUserRoles:
   self.e->forAll(r | self.user.c->includes(r))
