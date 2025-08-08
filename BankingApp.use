@@ -41,7 +41,7 @@ operations
   GrantPermission(p: Permission)
   RevokePermission(p: Permission)
   --- In this check access, we just want to make sure that this role, 
-  --- and its descendants have at least one attached to the operation and object
+  --- and its descendants have at least one attached to the operation and object via a permission
   CheckAccess(obj : Object, op : Operation)  : Boolean =
   let rolesToCheck : Set(Role) = self.Descendants()->including(self) in
     rolesToCheck->exists(r |
@@ -73,7 +73,11 @@ end
 
 class Permission
 operations
-  CheckAccess(obj : Object, op : Operation) : Boolean
+  -- For this, we just want to make sure it is binded. So we check that the object and permission are both included.
+  CheckAccess(obj : Object, op : Operation) : Boolean = 
+    self.f->includes(obj)
+      and
+    self.p->includes(op) 
 end
 
 class Object
