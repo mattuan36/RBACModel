@@ -9,7 +9,16 @@ class Session
 operations
   AddActiveRole(r: Role)
   DropActiveRole(r: Role)
-  CheckAccess(obj : Object, op : Operation)  : Boolean
+  CheckAccess(obj : Object, op : Operation) : Boolean =
+      let directRoles   = self.e in
+      let juniorRoles   = directRoles->collect(r | r.junior)->asSet() in
+      let allRoles      = directRoles->union(juniorRoles) in
+        allRoles->exists(r |
+          r.l->exists(p |
+            p.f->includes(obj) and
+            p.p->includes(op)
+          )
+        )
   InvokeOperation(obj : Object, op : Operation)
 end
 
@@ -32,9 +41,6 @@ operations
   GrantPermission(p: Permission)
   RevokePermission(p: Permission)
   CheckAccess(obj : Object, op : Operation)  : Boolean
-  begin
-    --- code here
-  end
   AddAscendant(r: Role)
   DeleteAscendant(r: Role)
   AddDescendant(r: Role)
@@ -46,7 +52,11 @@ operations
   AssignedUsers() : Set(User)
   AuthorizedUsers() : Set(User)
   Ascendants() : Set(Role)
-  Descendants() : Set(Role)
+  Descendants() : Set(Role) =
+      let direct   = self.junior in
+      let indirect = direct->collect(r | r.junior)->asSet() in
+        direct->union(indirect)
+    
   SSDRoles() : Set(Role)
   DSDRoles() : Set(Role)
 end

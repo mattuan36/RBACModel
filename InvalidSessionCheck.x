@@ -30,6 +30,6 @@
 
 !create p1:Permission
 !insert (r1, p1) into PermAssignment
-!insert (p1, o1) into PermObjects
+-- !insert (p1, o1) into PermObjects
 !insert (p1, op1) into PermOperations
 !insert (o1, op1) into ExecuteOn
