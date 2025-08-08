@@ -40,7 +40,17 @@ attributes
 operations
   GrantPermission(p: Permission)
   RevokePermission(p: Permission)
-  CheckAccess(obj : Object, op : Operation)  : Boolean
+  --- In this check access, we just want to make sure that this role, 
+  --- and its descendants have at least one attached to the operation and object
+  CheckAccess(obj : Object, op : Operation)  : Boolean =
+  let rolesToCheck : Set(Role) = self.Descendants()->including(self) in
+    rolesToCheck->exists(r |
+      r.l->exists(p |
+        p.f->includes(obj)
+        and
+        p.p->includes(op)
+      )
+    )
   AddAscendant(r: Role)
   DeleteAscendant(r: Role)
   AddDescendant(r: Role)
