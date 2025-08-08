@@ -191,14 +191,3 @@ context Session inv ActiveRolesSubsetOfUserRoles:
 -- Role hierarchy: a role inherits all permissions from its junior roles
 context Role inv PermissionInheritance:
   self.junior->forAll(j | self.l->includesAll(j.l))
-
-
--- This one is not working :(
--- Simulated CheckAccess: A session should have access to at least one operation on one object
--- if any of its active roles (or their juniors) has such permission
---context Session inv HasAtLeastOneValidAccess:
---  self.e->closure(junior)->exists(r |
---    r.l->exists(p |
---      p.f->exists(o | p.p->exists(op | o.q->includes(op)))
---    )
---  )
