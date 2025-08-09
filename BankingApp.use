@@ -4,6 +4,12 @@
 model BankingApp
 
 -- classes
+class Location
+attributes
+  lat: Real
+  long: Real
+operations
+end
 
 class Session
 operations
@@ -138,6 +144,16 @@ association RoleHierarchy between
   Role[0..*] role junior
 end
 
+association UserLocation between
+  Location[0..*] role currentLocation
+  User[1] role presentUsers
+end
+
+association ObjLocation between
+  Location[0..*] role currentLocation
+  Object[1] role presentObjects
+end
+
 -- constraints
 
 constraints
@@ -167,7 +183,6 @@ context User::DeassignRole(r: Role)
   post assignRolePost: self.c -> excludes(r)
 
 
-
 -- class invariants
 
 -- Basic SSD and DSD constraints
@@ -180,9 +195,6 @@ context Role inv SSDConstraint:
 context Role inv DSDConstraint:
   self.d->excludesAll(self.s.d)
 
-
-
-
 -- Active roles must be a subset of the user's assigned roles
 context Session inv ActiveRolesSubsetOfUserRoles:
   self.e->forAll(r | self.user.c->includes(r))
@@ -191,3 +203,9 @@ context Session inv ActiveRolesSubsetOfUserRoles:
 -- Role hierarchy: a role inherits all permissions from its junior roles
 context Role inv PermissionInheritance:
   self.junior->forAll(j | self.l->includesAll(j.l))
+
+context User inv HasOneLocation:
+  self.currentLocation->size()=1
+
+context Object inv HasOneLocation:
+  self.currentLocation->size()=1
