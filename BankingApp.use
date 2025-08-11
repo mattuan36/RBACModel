@@ -1,4 +1,5 @@
 -- This is a USE model of the Banking Application described in Using UML To Visualize Role-Based Access Control Constraints
+-- Part 3: Implementing Location to RBAC Model
 -- By: Matthew Tuan and Robbie Dutton
 
 model BankingApp
@@ -32,12 +33,15 @@ class User
 attributes
   UserId : String
 operations
-  CreateSession(s: Session)
+  CreateSession() : Session
   DeleteSession(s: Session)
   AssignRole(r: Role)
   DeassignRole(r: Role)
   AssignedRoles() : Set(Role)
   AuthorizedRoles() : Set(Role)
+  AssignLocation(l: Location)
+  DeleteLocation(l: Location)
+  GetLocation(): Location
 end
 
 class Role 
@@ -75,6 +79,12 @@ operations
     
   SSDRoles() : Set(Role)
   DSDRoles() : Set(Role)
+  AssignLocation(l: Location)
+  DeleteAssignLocation(l: Location)
+  ActiveLocation(l: Location)
+  DeleteActiveLocation(l: Location)
+  GetAssignLocation() : Location
+  GetActiveLocation() : Location
 end
 
 class Permission
@@ -87,6 +97,10 @@ operations
 end
 
 class Object
+operations
+  AssignLocation(l: Location)
+  DeleteLocation(l: Location)
+  GetLocation(): Location
 end
 
 class Operation
@@ -125,8 +139,8 @@ association PermOperations between
 end
 
 association ExecuteOn between
-  Object[0..*] role o
-  Operation[0..*] role q
+  Object[1..*] role o
+  Operation[1..*] role q
 end
 
 association SSD between
@@ -145,13 +159,33 @@ association RoleHierarchy between
 end
 
 association UserLocation between
-  Location[0..*] role currentLocation
-  User[1] role presentUsers
+  Location[1] role currentLocation
+  User[0..*] role presentUsers
 end
 
 association ObjLocation between
-  Location[0..*] role currentLocation
-  Object[1] role presentObjects
+  Location[1] role currentLocation
+  Object[0..*] role presentObjects
+end
+
+association AssignLocation between
+  Location[1] role assignLocation
+  Role[0..*] role assignRole
+end
+
+association ActiveLocation between
+  Location[1] role activeLocation
+  Role[0..*] role activeRole
+end
+
+association PermRoleLoc between
+  Location[0..*] role lp
+  Permission[0..*] role pl
+end
+
+association PermObjLoc between
+  Location[0..*] role lpo
+  Permission[0..*] role plo
 end
 
 -- constraints
@@ -164,8 +198,9 @@ constraints
 
 -- operation constraints
 
-context User::CreateSession(s: Session)
-  post createSessionPost: self.a -> includes(s)
+context User::CreateSession(): Session
+  post sessionCreated: result.oclIsNew() = true
+  post createSessionPost: self.a -> includes(result)
 
 context User::DeleteSession(s: Session)
   post deleteSessionPost: self.a -> excludes(s)
@@ -182,6 +217,11 @@ context User::DeassignRole(r: Role)
   pre assignRolePre: self.c -> includes(r)
   post assignRolePost: self.c -> excludes(r)
 
+-- Location Restricted Activation Hierarchy: Senior role can activate junior role (only if junior role can be activated based on location)
+context Session::AddActiveRole(r: Role)
+  pre juniorPermInheritance: r.activeLocation->includes(user.currentLocation)
+  or r.junior.activeLocation->asSet()->includes(user.currentLocation)
+
 
 -- class invariants
 
@@ -189,23 +229,33 @@ context User::DeassignRole(r: Role)
 
 -- Static Separation of Duty (SSD): Conflicting roles cannot be assigned to the same user
 context Role inv SSDConstraint:
-  self.b->excludesAll(self.g.b)
+  self.b->excludesAll(self.g.b) and self.b.currentLocation->excludesAll(self.g.assignLocation)
 
 -- Dynamic Separation of Duty (DSD): Conflicting roles cannot be activated in the same session
 context Role inv DSDConstraint:
-  self.d->excludesAll(self.s.d)
+  self.d->excludesAll(self.s.d) and r.g.activeLocation->excludesAll(r.activeLocation)
 
 -- Active roles must be a subset of the user's assigned roles
 context Session inv ActiveRolesSubsetOfUserRoles:
   self.e->forAll(r | self.user.c->includes(r))
 
-
--- Role hierarchy: a role inherits all permissions from its junior roles
+-- Location Restricted Permission Inheritance Hierarchy: Senior role inherits junior role permissions (restricted to the locations imposed on the junior roles)
 context Role inv PermissionInheritance:
-  self.junior->forAll(j | self.l->includesAll(j.l))
+  self.junior->forAll(j | self.l->includesAll(j.l)) and
+  self.junior->forAll(j | self.l.lp->includesAll(j.l.lp))
+  -- OLD self.junior->forAll(j | self.l->includesAll(j.l))
 
-context User inv HasOneLocation:
+context User inv UserHasOneLocation:
   self.currentLocation->size()=1
 
-context Object inv HasOneLocation:
+context Object inv ObjectHasOneLocation:
   self.currentLocation->size()=1
+
+context Role inv AssignHasOneLocation:
+  self.assignLocation->size()=1
+
+context Role inv ActiveHasOneLocation:
+  self.activeLocation->size()=1
+
+
+
