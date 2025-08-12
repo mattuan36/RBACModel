@@ -17,15 +17,22 @@ operations
   AddActiveRole(r: Role)
   DropActiveRole(r: Role)
   CheckAccess(obj : Object, op : Operation) : Boolean =
-      let directRoles   = self.e in
-      let juniorRoles   = directRoles->collect(r | r.junior)->asSet() in
-      let allRoles      = directRoles->union(juniorRoles) in
-        allRoles->exists(r |
-          r.l->exists(p |
-            p.f->includes(obj) and
-            p.p->includes(op)
-          )
+    let u   = self.user,
+        rs  = self.e,
+        jrs = rs->collect(r | r.junior)->asSet(),
+        all = rs->union(jrs)
+    in
+      all->exists(r |
+        -- role is valid for the user's current location
+        u.currentLocation = r.activeLocation and
+        -- permission links + location constraints
+        r.l->exists(p |
+          p.f->includes(obj) and                  -- object allowed
+          p.p->includes(op) and                   -- operation allowed
+          p.lp->includes(u.currentLocation) and   -- user's location allowed by permission
+          p.lpo->includes(obj.currentLocation)    -- object's location allowed by permission
         )
+      )
   InvokeOperation(obj : Object, op : Operation)
 end
 
@@ -188,6 +195,11 @@ association PermObjLoc between
   Permission[0..*] role plo
 end
 
+association SessionLocation between
+  Location[1] role currentLocation
+  Session[0..*] role sessions
+end
+
 -- constraints
 
 constraints
@@ -198,9 +210,14 @@ constraints
 
 -- operation constraints
 
-context User::CreateSession(): Session
-  post sessionCreated: result.oclIsNew() = true
-  post createSessionPost: self.a -> includes(result)
+context User::CreateSession() : Session
+  post sessionCreated: result.oclIsNew()
+  post linkUserSession: self.a->includes(result)
+  post sessionHasUserLoc: result.currentLocation = self.currentLocation
+
+-- context User::CreateSession(): Session
+--   post sessionCreated: result.oclIsNew() = true
+--   post createSessionPost: self.a -> includes(result)
 
 context User::DeleteSession(s: Session)
   post deleteSessionPost: self.a -> excludes(s)
@@ -211,6 +228,7 @@ context Role::GrantPermission(p: Permission)
 
 context User::AssignRole(r: Role)
   pre assignRolePre: self.c -> excludes(r)
+  pre assignLocationOK: self.currentLocation = r.assignLocation
   post assignRolePost: self.c -> includes(r)
 
 context User::DeassignRole(r: Role)
@@ -218,9 +236,12 @@ context User::DeassignRole(r: Role)
   post assignRolePost: self.c -> excludes(r)
 
 -- Location Restricted Activation Hierarchy: Senior role can activate junior role (only if junior role can be activated based on location)
+
+-- Ensure that the user is in the currentlocation where the role's activelocation is set.
 context Session::AddActiveRole(r: Role)
-  pre juniorPermInheritance: r.activeLocation->includes(user.currentLocation)
-  or r.junior.activeLocation->asSet()->includes(user.currentLocation)
+  pre mustBeAssigned: self.user.c->includes(r)
+  pre locationOK:     self.user.currentLocation = r.activeLocation
+  pre noDSDConflict:  self.e->intersection(r.s)->isEmpty()
 
 
 -- class invariants
@@ -256,6 +277,5 @@ context Role inv AssignHasOneLocation:
 
 context Role inv ActiveHasOneLocation:
   self.activeLocation->size()=1
-
 
 
